@@ -1,0 +1,140 @@
+---
+title: "Velo.com Assignment"
+author: "Maniteja Kurukunda"
+date: "10/16/2022"
+output: 
+  html_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+```
+
+<!-- Note:   -->
+
+<!-- These instructions are commented out and will not display when you knit your RMarkdown document. -->
+
+<!-- - Change the information in the yaml header above:  title, author, data. -->
+<!-- - Make sure output is html_document. -->
+<!-- - Once you are finished coding, **run each chunk individually to make sure there are no errors**.  (If necessary fix your code.) Once your code is error-free, click "knit" on the menu above. Your document should compile to HTML, provided that you have output set to "html_document." -->
+<!-- - In the code chunk above ("setup") echo is set to TRUE.  This means that the code in your chunks will be displayed, along with the results, in your compiled document. -->
+
+## Load data and packages
+
+```{r}
+library(tidyverse)
+
+v <- read_csv("velo.csv")
+
+```
+
+## Questions
+
+Lightly comment your code and use pipes for readability.
+
+Comment briefly on each of the questions, as directed.  Only the the final question requires a lengthier response.
+
+### Q1
+
+Plot the distribution of `spent` by `checkout_system`.  Below you will use a t-test to compare these distributions statistically.  However, a t-test assumes normally distributed data.  Is that assumption valid in this case?  Why or why not?
+
+Note: 
+
+1. You could compare the two distributions using histograms but a density plot works better. (A boxplot is also an option.)
+
+2. Make sure to include a plot title.
+
+```{r}
+ggplot(v,aes(x = spent, color= checkout_system))+geom_density(adjust=1)+labs(title = "The distribution of spent by checkout_system.")+xlim(-4000,9000)
+```
+
+> Answer:From the above plot, we can observe that the two samples are approximately normally distributed. A t-test assumes a normally distributed. This assumption is valid in this case because if the samples are not normally distributed then it isn’t valid to use the p-values from the test to conclude the differences between the samples.
+
+### Q2
+
+Create a summary table of `spent` by `checkout_system` with the following statistics:
+
+- n
+- mean
+- median
+- standard deviation
+- total 
+- the lower and upper bound of a 95% z-confidence interval for the mean.
+
+Your table should have 2 rows and 8 columns.
+
+```{r}
+v%>% 
+  group_by(checkout_system) %>% 
+  summarize(n = n(),
+            mean = mean(spent),
+            median = median(spent),
+            sd = sd(spent),
+            total=sum(spent),
+            lowerCI = (mean - 1.96 * (sd/sqrt(n))) %>%  round(2),
+            upperCI = (mean + 1.96 * (sd/sqrt(n)))  %>%  round(2))
+
+
+```
+
+###  Q3
+
+Is average spending significantly higher in the treatment group?  (The treatment group consists in the customers using the new checkout system.)  Answer this question using a 2 sample, 2-tailed t-test with alpha set at .05. (Note that these are the default settings for the `t.test()` function when vectors are supplied for the x and y arguments.)
+
+```{r}
+t.test(x = filter(v, checkout_system=='new')$spent,
+       y = filter(v, checkout_system =='old')$spent,
+       alternative = "two.sided")
+
+```
+
+> Answer: From the t-test results p=0.1536 which is greater than the 0.05 threshold value which means we are not rejecting the null hypothesis that there is no true difference in means . To conclude average spending was significantly not higher in the treatment group.
+
+### Q4
+
+Create another summary table of `spent` by `checkout_system` and `device`.  Include these same statistics:
+
+- n
+- mean
+- median
+- standard deviation
+- the lower and upper bound of a 95% confidence interval for the mean.
+
+```{r}
+v%>% 
+  group_by(checkout_system,device) %>% 
+  summarize(n = n(),
+            mean = mean(spent),
+            median = median(spent),
+            sd = sd(spent),
+            lowerCI = (mean - 1.96 * (sd/sqrt(n))) %>%  round(2),
+            upperCI = (mean + 1.96 * (sd/sqrt(n)))  %>%  round(2))
+
+
+```
+
+The table should have 4 rows and 8 columns.  
+
+Based on this information (as well as Sarah's observation, noted in the case description, that the glitch in the checkout system seemed more prevalent for mobile users), an additional statistical comparison of new and old among just mobile users seems warranted. Make that comparison using a 2 sample, 2-tailed t-test with alpha set at .05.  Report your results.
+
+Note that a t-test can only compare two groups.  Therefore, you will need to subset the data before making the comparison.
+
+```{r}
+X_mobile=subset(v,checkout_system=='new'&device=='mobile')
+y_mobile=subset(v,checkout_system=='old'&device=='mobile')
+t.test(x =X_mobile$spent,
+       y = y_mobile$spent,
+       alternative = "two.sided")
+
+```
+
+> Answer: By conducting a t-test between two samples specifically for mobile users we can observe the p-value = 0.01655 from the test which is less than the 0.05 threshold value which means we are rejecting the null hypothesis.In cocnlusion, there is a true difference in means of new and old checkout system samples.To conclude average spending is higher in treatment group when we take consideration of only mobile users
+
+### Q5
+
+What course of action should Sarah recommend to the management at velo.com? Please incorporate your analytic results from above in fashioning an answer.
+
+>Sarah should recommend the new checkout system over the old checkout system specifically for mobile users. The average spending in the new checkout system is higher because of the average spent of mobile users in the new checkout system which we can observe from the t-test(between new checkout system-mobile users and old checkout system -mobile users) conclusion from p values and means(0.01655 from the test which is less than 0.05 threshold and mean of spent for new checkout system(Mobile users)(2322.996) and mean of spent for old checkout system(Mobile users)(2174.920)) which means we are rejecting the null hypothesis. In conclusion, there is a true difference in the means of new and old checkout system samples specifically for mobile users(average spending is higher in treatment group). In addition, mobile users are increasing when we use the new checkout system which results in well spent. Nowadays people want to complete their tasks easily like completing the task on mobile rather than a computer. When we look at computer users there is not much difference in both the new and old checkout system average spent. To conclude using the new checkout system will help velo.com because mobile users are increasing which will result in improving the average spent on the overall checkout system.
+
