@@ -1,0 +1,117 @@
+---
+title: "Ames Revisited"
+author: "Maniteja Kurukunda "
+date: "12/4/2022 "
+output: 
+  html_document:
+    toc: true
+---
+
+
+##Q1
+
+
+```{r}
+library(tidyverse)
+AR<-read_csv("ames_revisited_data.csv")
+boot_dist <- NA 
+set.seed(123)
+for(i in 1:500){ 
+  boot_sample <- sample_frac(AR, replace = T) 
+
+  boot_dist[i] <- mean(boot_sample$SalePrice) 
+}
+mean(boot_sample$SalePrice)
+quantile(boot_dist, probs = c(.025, .975))
+mean(boot_dist) - 1.96 * sd(boot_dist)
+mean(boot_dist) + 1.96 * sd(boot_dist)
+
+
+
+```
+
+> The analytical and percentile method results are approximately equal, which we can see results from question 1. 
+Analytical method= 176904.5 to 185141.7 dollars,
+Percentile method= 176764.7 to 185074.5 dollars.
+
+
+## Q2
+
+```{r}
+AR<-AR%>%mutate(total_sqft=GrLivArea+TotalBsmtSF,age=2022-YearBuilt,BsmtQual=replace_na(BsmtQual,"none"),GarageQual=replace_na(GarageQual,"none"))
+AR <- AR %>% 
+  mutate( GarageQual= case_when(GarageQual == "none" ~ 1,
+                            GarageQual ==  "Po" ~ 1,
+                            GarageQual == "Fa"~ 2,
+                            GarageQual == "TA"~3,
+                            GarageQual == "Gd"~4,
+                            GarageQual == "Ex"~5))
+AR_model<-lm(log(SalePrice) ~ total_sqft * Neighborhood+OverallQual+OverallCond+age+BsmtQual+KitchenQual+GarageCars+GarageQual,data = AR)
+summary(AR_model)
+Avg_nochange<-exp(predict(AR_model)) %>%  mean 
+
+Avg_afterchange<-exp(predict(AR_model, 
+            newdata = AR %>% mutate(total_sqft = total_sqft +400))) %>%  mean 
+Avg_predictivedifference<-Avg_afterchange-Avg_nochange
+Avg_predictivedifference
+```
+
+>Adding the total sqft=400, results in a positive sale price increase compared to no changes in the Garage in question 1.  We can observe from the results that the average predictive difference(price increase) 17940.1 dollars when adding total sqft = 400.
+
+## Q3
+
+```{r}
+
+boot_dist1 <- NA 
+set.seed(123)
+
+for(i in 1:500){ 
+  boot_sample1 <- sample_frac(AR, replace = T)
+  boot_sample1<-boot_sample1%>%filter(Neighborhood!="Blueste")
+  boot_model1 <- lm(log(SalePrice) ~ total_sqft * Neighborhood+OverallQual+OverallCond+age+BsmtQual+KitchenQual+GarageCars+GarageQual,data = boot_sample1)
+  boot_dist1[i] <- mean(exp(predict(boot_model1, newdata = boot_sample1 %>% mutate(total_sqft = total_sqft +400)))) -
+                  mean(exp(predict(boot_model1))) # obtain and store predictive comparison 
+    
+}
+
+
+quantile(boot_dist1, probs = c(.025, .975))
+
+```
+
+> Adding the total sqft=400, results in a positive sale price increase compared to no changes in the Garage in question 1. Adding these change will always result in higher sale prices. We can observe from the results that the average predictive difference(price increase) varies from 16771.84 19948.78 dollars when adding total sqft = 400.
+
+## Q4
+
+```{r}
+boot_dist <- NA 
+boot_dist1 <- NA  
+boot_dist2 <- NA  
+
+set.seed(123)
+
+for(i in 1:500){ 
+  boot_sample <- sample_frac(AR, replace = T) 
+    boot_sample<-boot_sample%>%filter(Neighborhood!="Blueste")
+
+  boot_model <- lm(log(SalePrice) ~ total_sqft * Neighborhood+OverallQual+OverallCond+age+BsmtQual+KitchenQual+GarageCars+GarageQual,data = boot_sample) # fit model w sampled data
+  boot_dist[i] <- mean(exp(predict(boot_model, newdata = boot_sample %>% mutate(GarageCars = ifelse(GarageCars==0,2,GarageCars),GarageQual=5)))) -
+                  mean(exp(predict(boot_model))) # obtain and store predictive comparison 
+  boot_dist1[i] <- mean(exp(predict(boot_model, newdata = boot_sample %>% mutate(GarageQual=5)))) -
+                  mean(exp(predict(boot_model)))
+  boot_dist2[i] <- mean(exp(predict(boot_model, newdata = boot_sample %>% mutate(GarageCars = ifelse(GarageCars==0,2,GarageCars))))) -
+                  mean(exp(predict(boot_model)))
+    
+}
+quantile(boot_dist, probs = c(.025, .975))
+quantile(boot_dist1, probs = c(.025, .975))
+quantile(boot_dist2, probs = c(.025, .975))
+
+
+```
+
+> Adding or upgrading the Garage, results in a positive sale price increase compared to no changes in the Garage in question 1. Adding these change will always result in higher sale prices. We can observe from the results that the average predictive difference(price increase) varies from 6226.995 to 23937.496 dollars when considering both Garage cars and garage quality. The average predictive difference(price increase) varies from 5541.793 to 23360.121  dollars when considering garage quality. The average predictive difference(price increase) varies from 319.3797 to 772.7976  dollars when considering garage cars.
+
+## Q5
+
+>Stanley can present how housing prices vary with the change in predictors. We can see that house prices range from 176904.5 to 185141.7 dollars without any changes in the predictors. Increasing the total_sqft  by 400 in question 2 results in an average predictive difference of 17940.1 dollars in house price compared to question 1 results. However, this increase is not fixed. It may vary between 16771.84 to 19948.78 dollars which we can observe from the results of question 3. In addition, the Garage is also affecting the price more in question 4 results, and we can see an average predictive difference in sale price from 6226.995 to 23937.496 dollars when adding and upgrading the Garage when we compare the results from question 1. An average predictive difference in sale price from 5541.793 to 23360.121 dollars when upgrading the Garage quality when we compare the results from question 1. An average predictive difference in sale price from 319.3797 to 772.7976 dollars when adding the Garage cars when we compare the results from question 1. Overall, combining Garage quality and Garage cars results in a high sale price, but Garage quality contributes more comparatively to Garage cars. To conclude, Total sqft, Garage quality, and Garage cars are directly proportional to the sale price; a positive increase in those predictors results in a positive increase in the sale price of the houses. Stanly can recommend results(models) from question 3 and question 4 to the company to predict the sale prices of houses with changes in total sqft, garage quality, and garage cars. 
