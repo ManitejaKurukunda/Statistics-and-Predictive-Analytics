@@ -1,0 +1,63 @@
+---
+title: "Midterm Exam: Data Analysis Project"
+author: "Maniteja Kurukunda"
+date: "10/27/2022"
+output: 
+  html_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Please make sure your code is organized and lightly commented.
+
+### Task 1
+
+```{r}
+library(tidyverse) 
+midterm<-read.csv("midterm_data_v3.csv")
+t1<-midterm%>%group_by(treatment)%>%summarize(counts=n(),conversion_rate=mean(converted=="TRUE"))
+t1
+
+```
+
+### Task 2
+
+```{r}
+t2<-midterm%>%group_by(treatment)%>%summarize(average=mean(pageviews),median=median(pageviews),total=sum(pageviews))
+t2
+
+```
+
+### Task 3
+
+```{r}
+t3<-midterm%>%group_by(treatment)%>%summarize(counts=n(),Bounce_rate=mean(bounce=="TRUE"))
+t3
+
+```
+>There is a difference of 0.01 between control and treatment groups. To test the difference is statistically significant or not  we need to do hypothesis testing
+### Task 4
+
+```{r}
+X=subset(midterm,treatment=='yes'&bounce=='FALSE')
+y=subset(midterm,treatment=='no'&bounce=='FALSE')
+t.test(x =X$pageviews,
+       y = y$pageviews,
+       alternative = "two.sided")
+
+```
+> From the above results we can say that the differences in page views between treatment and control groups statistically significant because p value= 0.000625 from the above test is less than cut-off value 0.05 which means we are rejecting the null hypothesis(no differences in page views between treatment and control groups).
+
+### Task 5
+
+```{r}
+mt<-midterm%>%filter(bounce=="FALSE")
+ggplot(mt, aes(x=treatment, y=pageviews)) + 
+  geom_boxplot()+ggtitle("Boxplot for page views comparing treatment and control groups")
+
+```
+> From the above boxplot we can observe that page views for treatment group is higher than the control group as median of treatment group is 10 and old group is approximately 8 which means we can clearly observe that increase in number of viewers when the team tested the new landing page.We can recommend new landing page over old page 
+
