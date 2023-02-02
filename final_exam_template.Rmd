@@ -1,0 +1,72 @@
+---
+title: "Final Exam: Data Analysis Project"
+author: "Maniteja Kurukunda"
+date: "12/10/2022"
+output: 
+  html_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+### Task 1 Were pick errors different for employees with training compared to those without training? Create a summary table to explore this question. Include a count of employees in the table. (2 points)
+
+```{r}
+library(tidyverse) 
+OR<-read_csv("final_data_v3.csv") #Reading the input csv file to a variable
+OR%>%                             #Summary values of errors with respect to training    
+  group_by(training) %>% 
+  summarize(number_of_employees = n(),
+            total_errors=sum(errors),
+            mean = mean(errors),
+            median = median(errors),
+            sd = sd(errors))
+
+```
+
+### Task 2 Was there a relationship between pick errors and experience? Create a visualization with a summary regression line to explore this question. (2 points)
+
+```{r}
+#visualizing the relationship using linear regression model between experience and errors.
+ggplot(OR,aes(experience,errors))+geom_jitter()+geom_smooth(formula = y~ x,method = 'lm',se = F)+labs(title = "Relationship between Pick errors and experience")
+```
+
+### Task 3 Were pick errors statistically different for employees with training compared to those without training? Fit a model to answer this question. (2 points) 
+
+```{r}
+#conducting t test to know the statistical difference of pick errors for employees with respect to training
+
+t.test(filter(OR, training == 1)$errors, 
+       filter(OR, training== 0)$errors,alternative = c("two.sided"))
+
+```
+
+### Task 4 Was the relationship between experience and pick errors statistically different for employees with training compared to those without training? Fit a model to answer this question. (2 points)
+
+```{r}
+#Fitting interactive multiple regression model to know the relationship between experience and pick errors statistically different for employees with training compared to those without training.
+summary(lm(errors~experience*training,data = OR))
+
+
+```
+
+
+### Task 5 Create a plot that illustrates your result from the previous question. Optional: comment on whether the warehouse manager should require experienced employees to do the training? (2 points)
+
+
+```{r}
+OR <- OR %>%  
+      mutate(training= factor(training)) #Defining Factor levels for the training variable 
+ggplot(OR,aes(experience,errors,col=training))+geom_jitter()+geom_smooth(formula=y~x,method = 'lm',se=FALSE)+labs(title = "Visualization of the interaction model") 
+
+```
+
+> From the above plot, we can observe that as we move right to the x-axis, more experience results in fewer errors in general. However, employees with training and experience make fewer errors when compared to employees without training and experience. To conclude, providing training will result in fewer errors.
+
+
+### Task 6
+
+Organize and comment your code for readability and then compile your document to PDF, HTML or Word.
