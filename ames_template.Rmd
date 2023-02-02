@@ -1,0 +1,174 @@
+---
+title: "Ames Housing Case"
+author: "Maniteja Kurukunda "
+date: "11/13/2022 "
+output: 
+  html_document:
+    toc: true
+---
+
+
+> Q1.Fit two multiple regression models:
+1)SalePrice ~ GrLivArea + Neighborhood.
+2)SalePrice ~ GrLivArea + Neighborhood + 1stFlrSF +2ndFlrSF.
+(To fit this second model you will need to enclose the added variables in backticks because—in violation of R column-naming conventions— they start with numbers.)
+Explain what is going wrong with the second model (look at the coefficients and standard errors for GrLivArea) and how you would fix it.
+
+```{r}
+library(tidyverse)
+ahd <- read_csv("ames_data.csv")
+summary(lm(SalePrice ~ GrLivArea + Neighborhood,data = ahd))
+
+summary(lm(SalePrice ~ GrLivArea + Neighborhood+ `1stFlrSF` + `2ndFlrSF`,data = ahd))
+
+```
+
+>When we compare the two multi-regression models in the above result coefficient of GrLivArea is less in the second model, 16.99, than in the first model, 78.017, and the standard error is increased in the second model, 22.49, whereas in the first model, 2.398. The significant change in the second model is a rapid increase in standard error because of collinear predictors or correlated variables in the model that is Multicollinearity between GrLivArea and 1stFlrSF & 2ndFlrSF. We can solve this problem by removing one of the correlated variables
+
+
+
+## Q2
+>Fit a model of SalePrice with the following 9 predictors:
+total_sqft. You will need to create this variable by combining GrLivArea and TotalBsmtSF.
+Neighborhood.
+OverallQual.
+OverallCond.
+YearBuilt. Make this into an age variable by subtracting YearBuilt from the current year.
+BsmtQual.
+KitchenQual.
+GarageCars.
+GarageQual.
+For both of the basement and garage quality variables you will need to replace the NAs with “none” (meaning the home does not have that feature). The lm() function will then treat the “none” as another factor level in the regression.
+Is this a good model? Create and discuss the model’s residual plot.
+
+```{r}
+ahd<-ahd%>%mutate(total_sqft=GrLivArea+TotalBsmtSF,age=2022-YearBuilt,BsmtQual=replace_na(BsmtQual,"none"),GarageQual=replace_na(GarageQual,"none"))
+mlr<-lm(SalePrice ~ total_sqft + Neighborhood+OverallQual+OverallCond+age+BsmtQual+KitchenQual+GarageCars+GarageQual,data = ahd)
+summary(mlr)
+plot1<-ahd %>% 
+  mutate(fitted = fitted(mlr),
+         residuals = resid(mlr)) %>% 
+  ggplot(aes(fitted, residuals)) +
+  geom_point() +
+  geom_smooth(formula=y~x,method = "lm", se = F, col = "red") +
+  labs(title = "Residuals Plot")
+plot1
+
+plot2<-
+  ggplot(ahd,aes(fitted(mlr),SalePrice)) +
+  geom_point() +
+  geom_smooth(formula=y~x,method = "lm", se = F, col = "red")+
+  labs(title = "Plot between fitted values and observed sale price values")
+plot2
+
+plot3<-ggplot(ahd,aes(resid(mlr)))+geom_histogram(bins = 30)+
+labs(title = "Histogram of residuals")
+plot3
+
+
+```
+
+>The resulting model is good because the adjusted R2 0.8363 and multiple R2 0.8409 values are high for a good model and indicate a small Standard error. In addition, the above plots satisfy the assumptions for a good model. From the residual plot, the points are scattered randomly around the residual=0 line. A linear model is appropriate for modeling this data, and also, there are no patterns in the plot, which satisfies the assumption of a good model. From plot two, the linearity assumption is met between the fitted values and target variables, and from plot three, the histogram shows that residuals are approximately normally distributed. To conclude model satisfies all the required assumptions of a good model.
+
+
+## Q3
+>Refit the same model as in Q2, but this time log transform SalePrice. (Use the natural log.)
+Is this a better model than in Q2? Explain your reasoning.
+
+```{r}
+mlr2<-lm(log(SalePrice) ~ total_sqft + Neighborhood+OverallQual+OverallCond+age+BsmtQual+KitchenQual+GarageCars+GarageQual,data = ahd)
+summary(mlr2)
+
+plot<-ahd %>% 
+  mutate(fitted = fitted(mlr2),
+         residuals = resid(mlr2)) %>% 
+  ggplot(aes(fitted, residuals)) +
+  geom_point() +
+  geom_smooth(formula=y~x,method = "lm", se = F, col = "red")+ylim(-2, 2)+labs(title = "Residuals Plot")
+plot
+
+
+
+```
+
+>To choose between two multiple regression models, we need to select the one with the high Adjusted R2 value, and the model has equally distributed residuals around zero. The resulting model in Q3 has a higher adjusted R2 of 0.8629 than the Q2 model, which is 0.8363. In addition, when we compare the two models' residual plots, the Q3 model is more equally distributed residuals around zero than the Q2 model. To conclude Q3 model is better than the Q2 model.
+
+
+## Q4
+>Again, refit the same model as in Q3 (with log transformed SalePrice), but this time standardize (center and scale) the numeric variables.
+Which predictors have the largest effect sizes? Explain why this result is different from the effect sizes for the model in Q2.
+
+```{r}
+mlr3<-lm((log(SalePrice)) ~ scale(total_sqft) + Neighborhood+scale(OverallQual)+scale(OverallCond)+scale(age)+BsmtQual+KitchenQual+scale(GarageCars)+GarageQual,data = ahd)
+
+summary(mlr3)
+
+plot<-ahd %>% 
+  mutate(fitted = fitted(mlr3),
+         residuals = resid(mlr3)) %>% 
+  ggplot(aes(fitted, residuals)) +
+  geom_point() +
+  geom_smooth(formula=y~x,method = "lm", se = F, col = "red")+ylim(-2, 2)+labs(title = "Residuals Plot")
+plot
+
+
+```
+
+
+>NeighborhoodNoRidge 0.216790,   
+NeighborhoodStoneBr  0.210485, 
+NeighborhoodClearCr  0.209056,
+NeighborhoodCrawfor  0.191391,
+NeighborhoodVeenker  0.180551,
+NeighborhoodNridgHt  0.166599,
+total_sqft           0.144233,
+NeighborhoodTimber   0.139987,
+NeighborhoodSomerst  0.120668, 
+NeighborhoodGilbert  0.117183,
+OverallQual          0.091987,   
+NeighborhoodCollgCr  0.085027,
+NeighborhoodSawyerW  0.070627, 
+OverallCond          0.060727, 
+GarageCars           0.053082,
+NeighborhoodNWAmes   0.050842,   
+NeighborhoodSWISU    0.041083,     
+NeighborhoodMitchel  0.030861,
+NeighborhoodNAmes    0.033640,
+NeighborhoodSawyer   0.027492,
+These are the predictors with the most significant effect sizes in the Descending order. The difference between Q4 and Q2 predictor's effect sizes is that in Q4, we performed scaling for the predictors and Log transform for the predictor, whereas, in Q2, the data is raw data.
+
+
+
+
+## Q5
+#What should Stanley say in his Friday presentation? Write a brief summary of the quantitative evidence that he might use to answer the questions he will inevitably get from the group:
+#Are your models any good?
+#Are the model coefficients and standard errors trustworthy?
+#What are the strongest predictors of home sale rice?
+#What exactly is the relationship between those predictors and sale price in dollar terms?
+#Stanley knows from past experience that he will be expected to interpret model coefficients.
+
+>Three models from Q2, Q3, and Q4 are good because of their model parameters results, but when we compare the three models, Q4 is best among them because of its high adjusted R2 value that is 0.8629, and its residual plot, the points are scattered, approximately equally distributed around the residual=0 line. Whereas in Q2, Adjusted R2 is 0.8363. Even though Model parameters (Adjusted R2, Residual Standard Error) from Q3 are the same as in Q4, the Model from Q4 is standardized. Standardizing makes comparing scores easier, even if they were measured on different scales. It also makes it easier to read results from regression analysis and ensures that all variables contribute to a scale when added together, which is why the Q4 Model is best. Model Coefficients and standard errors are worthy because the high Adjusted R2 value is the primary parameter that shows low residual error, which is a directly proportionally related parameter that indicates the excellent fit model. 
+Below are the strongest predictors for the sale price are (Neighborhood,total_sqft,OverallQual,OverallCond,GarageCars)
+NeighborhoodNoRidge 0.216790,   
+NeighborhoodStoneBr  0.210485,  
+NeighborhoodClearCr  0.209056,
+NeighborhoodCrawfor  0.191391,
+NeighborhoodVeenker  0.180551,
+NeighborhoodNridgHt  0.166599,
+total_sqft           0.144233,
+NeighborhoodTimber   0.139987,
+NeighborhoodSomerst  0.120668, 
+NeighborhoodGilbert  0.117183,
+OverallQual          0.091987,   
+NeighborhoodCollgCr  0.085027,
+NeighborhoodSawyerW  0.070627, 
+OverallCond          0.060727, 
+GarageCars           0.053082,
+NeighborhoodNWAmes   0.050842,   
+NeighborhoodSWISU    0.041083,     
+NeighborhoodMitchel  0.030861,
+NeighborhoodNAmes    0.033640,
+NeighborhoodSawyer   0.027492,
+The relationship between these predictors and the target variable is positively correlated. For example, On average, an increase of 1 unit in NeighborhoodNoRidge is associated with an e^0.216790 = 1.2420832 = 24.2% change in sale price. Intercept = 12.299750 is the average log(price) value when all predictors are  0 to put it back on the original scale e^12.299750= 219641.07 dollars.
+219641.07 * 24.2%= 53,153.13, which means if one unit changes in the NeighborhoodNoRidge variable, there will be a 53,153.13 dollar increase in the sale price. Similar to other predictors' sale price increases because of the positive correlation between predictors and the target variable. To conclude Q4 model will be recommended for a better understanding of the predictor's scores and for getting the good results and predicting the good sale price(Target variable).
