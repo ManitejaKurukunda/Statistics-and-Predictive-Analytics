@@ -1,0 +1,97 @@
+---
+title: "PacDev Case "
+author: "Maniteja Kurukunda"
+date: "11/6/2022 "
+output: 
+  html_document:
+    toc: true
+---
+
+
+## Q1
+
+```{r}
+library(tidyverse)
+library("ggplot2")
+pd <- read_csv("pacdev_data.csv",show_col_types = FALSE)
+
+summary(lm(price~sqft,data = pd))
+ggplot(pd,aes(sqft,price))+geom_jitter()+geom_smooth(formula = y~ x,method = 'lm',se = F)+labs(title = "Plot between Price and SQFT")
+```
+
+>price=40623.019+269.345*sqft.This summary regression line shows the positive correlation between price and sqft; if sqft increases, the price of the home increases.
+
+## Q2
+
+```{r}
+pd<-pd%>%mutate(centered_sqft=(sqft-mean(sqft)))
+summary(lm(price~centered_sqft+city+pool+garage+bed+bath,data = pd))
+
+
+
+```
+>price=528103.213+271.561 * centered_sqft +190239.704 * city Santa Monica +88020.719 * cityWestwood +10124.630 * pool yes -14195.911 * garages + 41.553 * bed -3092.909 * bath. 
+From this summary multiple linear regression line
+Intercept of the model is 528103.213 which is positive.
+1)slope for the centered sqft is 271.561.
+2)slopes for each individual cities are 190239.704(Santa Monica), 88020.719(cityWestwood).
+Slopes are positive means price increases with the unit change in below variables Santa Monica city has the higher slope value when compare to other cities(Westwood and Long Beach).
+
+## Q3
+
+```{r}
+Int_Model<-summary(lm(price~centered_sqft*city+pool+garage+bed+bath,data = pd))
+Int_Model
+ggplot(pd,aes(centered_sqft,price,col=city))+geom_jitter()+geom_smooth(formula=y~x,method = 'lm',se=FALSE)+labs(title = "Visualization of the interaction model,")
+
+
+
+
+
+```
+
+>From the above interaction model we can observe that 
+Intercept of the interaction model is 527445.45 which is positive.
+Main effects:
+1)slope for the centered sqft is 240.63. 
+2)slopes for each individual cities are 189904.29(Santa Monica), 88037.11(cityWestwood). 
+Slopes are positive means price increases with the unit change in the variables. 
+Interaction effects:
+1)centered_sqft:citySanta Monica = 90.09.
+2)centered_sqft:cityWestwood = 37.95.
+The interaction coefficients are positive which means price increase with the below interactions. we can clear observe that sant monica city interaction with sqft has higher interaction effect when compare to other cities combination with sqft.
+ 
+
+
+## Q4
+
+```{r}
+plot1<-pd %>% 
+  mutate(fitted = fitted(lm(price~centered_sqft*city+pool+garage+bed+bath,data = pd)),
+         residuals = fitted-price) %>% 
+  ggplot(aes(fitted, residuals)) +
+  geom_point() +
+  geom_smooth(formula=y~x,method = "lm", se = F, col = "red") +
+  labs(title = "Residuals for the interaction model")
+plot1
+
+plot2<-
+  ggplot(pd,aes(fitted(lm(price~centered_sqft*city+pool+garage+bed+bath,data = pd)),price)) +
+  geom_point() +
+  geom_smooth(formula=y~x,method = "lm", se = F, col = "red")+
+  labs(title = "Plot between fitted values and observed price values")
+plot2
+
+plot3<-ggplot(pd,aes(resid(lm(price~centered_sqft*city+pool+garage+bed+bath,data = pd))))+geom_histogram(bins = 30)+
+labs(title = "Histogram of residuals")
+plot3
+```
+
+>From the above plots, we can conclude that the model is good for the following reasons. 
+1)Plot1 is showing the residual plot. The points are scattered randomly around the residual=0 line, which means there are no patterns in the plot, satisfying the condition of a good model. we can also conclude that a linear model is appropriate for modeling this data.
+2)Plot2 is showing the linearity condition. That is, the data is linear and well described with a line that does not violate the requirements of a good model. 
+3)Plot3 is visualizes the histogram. The Histogram of the Residual can be used to check whether the variance is normally distributed. A symmetric bell-shaped histogram that is evenly distributed around zero indicates that the normality assumption is likely to be true, which satisfies the conditions of a good model.
+
+## Q5
+> Andrew should recommend Santa Monica city as a priority or primary city over Westwood and Long beach because it has more home price effect with the addition of Square footage. We can observe from the question 3 results that the interaction effect of Sqft and Santa Monica is 90.09 (Positive slope), which indicates a stronger relationship. In comparison, Westwood has 37.95(Positive slope), which is approximately three times less than Santa Monica city. And also, we can clearly observe from the question 3 plot for the interaction model Santa Monica tops at first place, Westwood at second, and Long Beach at last, again proving that Santa Monica is a priority. In addition, Andrew should recommend the interaction model over other models because When we compare question3(multiple regression with interaction) results with question1(linear regression) and question2(multiple regression without interaction), there is an increase in R2(0.31) and decrease in Residual standard error(194500) in the interaction model. Whereas in the without interaction model, values are R2(0.30) and Residual standard error(195000), and for the liner regression model, the values are R2(0.19) and Residual standard error(210300). For a good model, it should have low Residual standard error and high R2, which are satisfying in the interaction model compared to other models. Moreover, the results of the question4 model satisfy the conditions for a good model. To conclude, Santa Monica city will have high home prices with the addition of square footage compared to other cities.
+
